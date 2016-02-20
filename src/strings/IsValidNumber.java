@@ -3,6 +3,7 @@ package strings;
 /*
  * Check whether given string is a valid number of base10 or base16 or base8
  * Example true cases:
+ *  Base10:
  *  +345
  *  +234.345
  *  -34.456

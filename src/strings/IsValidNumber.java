@@ -8,6 +8,7 @@ package strings;
  *  -34.456
  *  .3743
  *  
+ *  Hex:
  *  +0x45af
  *  -0x45.234ad
  *  0x0.34ad
@@ -28,6 +29,7 @@ public class IsValidNumber {
         int len = ip.length;
         
         int start = 0;
+
         if (ip[0] == '+' || ip[0] == '-') {
             start++;
             len--;
@@ -36,9 +38,8 @@ public class IsValidNumber {
         if (len == 0)
             return false;
         
-        if (isPrefixHex(ip, start, len)) {
+        if (isPrefixHex(ip, start, len))
             return validateHex(ip, start);
-        }
         
         if (isPrefixOctal(ip, start, len))
             return validateOctal(ip, start);
@@ -69,7 +70,7 @@ public class IsValidNumber {
     private static boolean isWellformedNumber(char[] ip, int start, int base) {
         boolean seenDot = false;
         
-        if (start == ip.length)
+        if (start == ip.length) // 0 characters
             return false;
         
         for(int i=start; i<ip.length; i++) {

@@ -60,5 +60,20 @@ public class BSTTree<T extends Comparable<T>> {
         getInorderHelper(current.right, inorderItems);
     }
     
+    public List<T> getPreorder() {
+        List<T> preorderItems = new ArrayList<T>();
+        getPreorderHelper(root, preorderItems);
+        return preorderItems;
+    }
+    
+    private void getPreorderHelper(TreeNode<T> current, List<T> preorderItems) {
+        if (current == null)
+            return;
+        
+        preorderItems.add(current.value);
+        getPreorderHelper(current.left, preorderItems);
+        getPreorderHelper(current.right, preorderItems);
+    }
+    
     private TreeNode<T> root;
 }

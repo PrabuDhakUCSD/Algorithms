@@ -165,19 +165,32 @@ class TicTacToe
 
     public boolean setMove(int move, int p_type)
     {
-        int x_coord = (move-1)/3;
-        int y_coord = (move-1)%3;
-
-        if( board[x_coord][y_coord] == 0 )
+        int x_coord;
+        int y_coord;
+        boolean isValidMove = false;
+        
+        try {
+            x_coord = TicTacToe.getRowIndexFromBoardPos(move);
+            y_coord = TicTacToe.getColIndexFromBoardPos(move);
+            
+            if( board[x_coord][y_coord] == 0 )
             {
                 board[x_coord][y_coord] = p_type ;
-                return true ;
+                isValidMove = true;
+            } else {
+                isValidMove = false;
             }
-        else
-            {
-                System.out.println("Invalid move");
-                return false ;
-            }
+            
+        } catch (IllegalArgumentException ex) {
+            isValidMove = false;
+        }
+        
+        if (!isValidMove) {
+            System.out.println("Invalid move");
+            return false;
+        }
+        
+        return true;
     }
 
     private enum WinConfig {
@@ -190,29 +203,18 @@ class TicTacToe
         // rows
         for( int i = 0 ; i < N ; i ++ )
         {
-            if( (board[i][0] != 0) && (board[i][0] == board[i][1]) && (board[i][0] == board[i][2] ) )
-            {
-                return w ;
-            }
+            if (checkRow(i))
+                return w;
         }
         // columns
         for( int i = 0 ; i < N ; i ++ )
         {
-            if( (board[0][i] != 0) && (board[0][i] == board[1][i]) && (board[0][i] == board[2][i] ) )
-            {
-                return w ;
-            }
+            if (checkCol(i))
+                return w;
         }
         // diags
-        if( (board[0][0] != 0) && (board[0][0] == board[1][1]) && (board[0][0] == board[2][2] ) )
-        {
-            return w ;
-        }
-
-        if( (board[2][0] != 0) && (board[2][0] == board[1][1]) && (board[2][0] == board[0][2] ) )
-        {
-            return w ;
-        }
+        if (checkDiag1() || checkDiag2())
+            return w;
 
         // draw
         w = WinConfig.DRAW ;
@@ -220,12 +222,68 @@ class TicTacToe
             for( int j = 0 ; j < N ; j ++ )
                 {
                     if( board[i][j] == 0 )
-                        w = WinConfig.NONE ;
+                        return WinConfig.NONE ;
                 }
         return w ;
 
     }
 
+    private boolean checkRow(int row) {
+        int firstVal = board[row][0];
+        
+        if (firstVal == 0)
+            return false;
+        
+        for (int col=1; col<N; col++) {
+            if (board[row][col] != firstVal)
+                return false;
+        }
+            
+        return true;
+    }
+    
+    private boolean checkCol(int col) {
+        int firstVal = board[0][col];
+        
+        if (firstVal == 0)
+            return false;
+        
+        for (int row=1; row<N; row++) {
+            if (board[row][col] != firstVal)
+                return false;
+        }
+        
+        return true;
+    }
+    
+    private boolean checkDiag1() {
+        int firstVal = board[0][0];
+        
+        if (firstVal == 0)
+            return false;
+        
+        for(int i=1, j=1; i<N && j<N; i++, j++) {
+            if (board[i][j] != firstVal)
+                return false;
+        }
+        
+        return true;
+    }
+    
+    private boolean checkDiag2() {
+        int firstVal = board[0][N-1];
+        
+        if (firstVal == 0)
+            return false;
+        
+        for(int i=1, j=N-2; i<N && j>=0; i++, j--) {
+            if (board[i][j] != firstVal)
+                return false;
+        }
+        
+        return true;
+    }
+    
     private String getRowString(int row)
     {
         String s = "" ;
@@ -277,6 +335,20 @@ class TicTacToe
             boardPos = row*N + col + 1;
     
         return boardPos;
+    }
+    
+    public static int getRowIndexFromBoardPos(int pos) {
+        if (pos >= 1 && pos <= N*N)
+            return (pos-1)/N;
+
+        throw new IllegalArgumentException();
+    }
+    
+    public static int getColIndexFromBoardPos(int pos) {
+        if (pos >= 1 && pos <= N*N)
+            return (pos-1)%N;
+        
+        throw new IllegalArgumentException();
     }
 
     public static void main( String[] args )

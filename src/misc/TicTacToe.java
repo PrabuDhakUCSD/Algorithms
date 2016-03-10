@@ -391,12 +391,19 @@ class TicTacToe
             System.out.println("You have put an X in the " + TicTacToe.getPosDescription(move1) + ". I will put a O in the " + TicTacToe.getPosDescription(move2) + "." ) ;
             game.setMove(move2, game.getplayer2().getPlayerType() ) ;
 
-            if( game.isWinningConfig() == WinConfig.WIN ) {
+            if( ( w = game.isWinningConfig() ) == WinConfig.WIN ) {
                 System.out.println("");
                 System.out.println(game.toString() );
                 System.out.println("I won. Thanks for playing.") ;
                 break ;
             }
+            else if( w == WinConfig.DRAW ) {
+                System.out.println("");
+                System.out.println(game.toString()) ;
+                System.out.println("Well played. It is a draw!");
+                break ;
+            }
+            
             System.out.println(game.toString());
         }
 

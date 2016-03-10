@@ -28,7 +28,7 @@ class SimpleMoveStrategy implements MoveMethod
                 for( int j = 0 ; j < TicTacToe.N ; j ++ )
                     {
                         if( game.board[i][j] == 0 )
-                            return (i*3+j+1) ;
+                            return (TicTacToe.getBoardPosFromRowColIndex(i, j)) ;
                     }
             }
         return 0 ;
@@ -42,29 +42,27 @@ class HumanMove implements MoveMethod
         game = t ;
     }
     public int move() {
-
         String move_str ;
         int move_int = 0 ;
         boolean valid_input = false ;
         while(!valid_input) {
             System.out.print("Where to ? ");
             move_str = TicTacToe.getUserInput() ;
-            if( Character.isDigit(move_str.toCharArray()[0]) ) {
+            try {
                 move_int = Integer.parseInt(move_str);
                 if( ( move_int <= (TicTacToe.N)*(TicTacToe.N) ) && move_int >= 1 ) {
-                    valid_input = true ;
-                    break ;
+                    valid_input = true;
                 }
+            } catch(NumberFormatException ex) {
+                ex.printStackTrace();
             }
 
             if( !valid_input ) {
                 System.out.println("Invalid input");
-                continue ;
             }
         }
         return move_int ;
     }
-
 }
 
 class TicTacToe
@@ -251,7 +249,7 @@ class TicTacToe
 
          for( int i = 0 ; i < N ; i ++ )
           {
-            s += row*3+i+1 ;
+            s += TicTacToe.getBoardPosFromRowColIndex(row, i) ;
 
             if( i == N-1 ) {
                 s += "\n";
@@ -271,6 +269,14 @@ class TicTacToe
             s += getRowString(i);
         }
         return s;
+    }
+    
+    public static int getBoardPosFromRowColIndex(int row, int col) {
+        int boardPos = -1; // default value when row/col is invalid.
+        if (row >= 0 && row < N && col>=0 && col < N )
+            boardPos = row*N + col + 1;
+    
+        return boardPos;
     }
 
     public static void main( String[] args )

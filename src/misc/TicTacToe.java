@@ -3,54 +3,51 @@ package misc;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 
 // Strategy pattern.
 // The computer player's behavior/strategy can be replaced by inheriting from the interface below
 // Also, the human player's behavior inherits from the same interface
 // This also makes it easy to modify the game for 2 human players, 2 computer players etc.
 
+interface IReadOnlyBoard
+{
+    public MarkerType getCell(int row, int col);
+    public int getFirstEmptyCell();
+    public int getSize();
+}
+
 interface MoveMethod
 {
-    public int move();
+    public int move(IReadOnlyBoard board);
 }
 
 class SimpleMoveStrategy implements MoveMethod
 {
-    private TicTacToe game;
-    public SimpleMoveStrategy(TicTacToe t) {
-        game = t ;
+    public SimpleMoveStrategy() {
     }
 
-    public int move() {
-
-        for( int i = 0 ; i < TicTacToe.N ; i ++ )
-            {
-                for( int j = 0 ; j < TicTacToe.N ; j ++ )
-                    {
-                        if( game.board[i][j] == 0 )
-                            return (TicTacToe.getBoardPosFromRowColIndex(i, j)) ;
-                    }
-            }
-        return 0 ;
+    public int move(IReadOnlyBoard board) {
+        return board.getFirstEmptyCell();
     }
 }
 
 class HumanMove implements MoveMethod
 {
-    private TicTacToe game;
-    public HumanMove(TicTacToe t) {
-        game = t ;
+    public HumanMove() {
     }
-    public int move() {
+    
+    public int move(IReadOnlyBoard board) {
         String move_str ;
         int move_int = 0 ;
         boolean valid_input = false ;
         while(!valid_input) {
             System.out.print("Where to ? ");
-            move_str = TicTacToe.getUserInput() ;
+            move_str = Util.getUserInput() ;
             try {
                 move_int = Integer.parseInt(move_str);
-                if( ( move_int <= (TicTacToe.N)*(TicTacToe.N) ) && move_int >= 1 ) {
+                if( ( move_int <= (board.getSize())*(board.getSize()) ) &&
+                        move_int >= 1 ) {
                     valid_input = true;
                 }
             } catch(NumberFormatException ex) {
@@ -65,51 +62,174 @@ class HumanMove implements MoveMethod
     }
 }
 
+enum MarkerType {
+    NONE, NOUGHT, CROSS
+}
+
+class Player
+{
+    private String name ;
+    private MarkerType marker_type ;
+    private MoveMethod move_strategy ;
+
+    public Player(String pname, MarkerType type, MoveMethod move_s )
+    {
+        name = pname ;
+        marker_type = type ;
+        move_strategy = move_s ;
+    }
+
+    public String getName() {
+        return name ;
+    }
+
+    public MarkerType getPlayerType() {
+        return marker_type ;
+    }
+
+    public int getMove(IReadOnlyBoard board) {
+        return move_strategy.move(board);
+    }
+}
+
+class SquareBoard implements IReadOnlyBoard
+{
+    private MarkerType[][] board;
+    private final int SIZE;
+    
+    public SquareBoard(int size) {
+        this.SIZE = size;
+        board = new MarkerType[SIZE][SIZE];
+        
+        for(int i=0; i<SIZE; i++)
+            Arrays.fill(board[i], MarkerType.NONE);
+    }
+    
+    @Override
+    public MarkerType getCell(int row, int col) {
+        if (row >=0 && row < SIZE && col >= 0 && col < SIZE )
+            return board[row][col];
+        
+        throw new IllegalArgumentException();
+    }
+    
+    
+    @Override
+    public int getFirstEmptyCell() {
+        for(int i=0; i<SIZE; i++)
+            for(int j=0; j<SIZE; j++)
+                if (isCellFree(i, j))
+                    return getBoardPosFromRowColIndex(i, j);
+        
+        return 0;
+    }
+    
+    @Override
+    public int getSize() {
+        return SIZE;
+    }
+    
+    boolean isCellFree(int row, int col) {
+        return getCell(row, col) == MarkerType.NONE;
+    }
+   
+    int getBoardPosFromRowColIndex(int row, int col) {
+        int boardPos = -1; // default value when row/col is invalid.
+        if (row >= 0 && row < SIZE && col>=0 && col < SIZE )
+            boardPos = row*SIZE + col + 1;
+    
+        return boardPos;
+    }
+    
+    boolean setCellIfEmpty(int pos, MarkerType marker) {
+        int rowInd = getRowIndexFromBoardPos(pos);
+        int colInd = getColIndexFromBoardPos(pos);
+        
+        if(isCellFree(rowInd, colInd)) {
+            board[rowInd][colInd] = marker;
+            return true;
+        }
+        
+        return false;
+    }
+    
+    int getRowIndexFromBoardPos(int pos) {
+        if (pos >= 1 && pos <= SIZE*SIZE)
+            return (pos-1)/SIZE;
+
+        throw new IllegalArgumentException();
+    }
+    
+    int getColIndexFromBoardPos(int pos) {
+        if (pos >= 1 && pos <= SIZE*SIZE)
+            return (pos-1)%SIZE;
+        
+        throw new IllegalArgumentException();
+    }
+    
+    boolean isRowIdentical(int row) {
+        MarkerType firstVal = board[row][0];
+        
+        if (firstVal == MarkerType.NONE)
+            return false;
+        
+        for (int col=1; col<SIZE; col++) {
+            if (board[row][col] != firstVal)
+                return false;
+        }
+            
+        return true;
+    }
+    
+    boolean isColIdentical(int col) {
+        MarkerType firstVal = board[0][col];
+        
+        if (firstVal == MarkerType.NONE)
+            return false;
+        
+        for (int row=1; row<SIZE; row++) {
+            if (board[row][col] != firstVal)
+                return false;
+        }
+        
+        return true;
+    }
+    
+    boolean isDiag1Identical() {
+        MarkerType firstVal = board[0][0];
+        
+        if (firstVal == MarkerType.NONE)
+            return false;
+        
+        for(int i=1, j=1; i<SIZE && j<SIZE; i++, j++) {
+            if (board[i][j] != firstVal)
+                return false;
+        }
+        
+        return true;
+    }
+    
+    boolean isDiag2Identical() {
+        MarkerType firstVal = board[0][SIZE-1];
+        
+        if (firstVal == MarkerType.NONE)
+            return false;
+        
+        for(int i=1, j=SIZE-2; i<SIZE && j>=0; i++, j--) {
+            if (board[i][j] != firstVal)
+                return false;
+        }
+        
+        return true;
+    }
+}
+
 class TicTacToe
 {
     protected static final int N = 3 ;
     private static final int HSPACE = 20 ;
-    protected int[][] board;
-    private static BufferedReader reader =
-        new BufferedReader(new InputStreamReader(System.in)) ;
-
-    class Player
-    {
-        private String name ;
-        private int player_type ;
-        private int player_order ;
-        private MoveMethod move_strategy ;
-
-        public Player(String pname, int type, int order, MoveMethod move_s )
-        {
-            name = pname ;
-            player_type = type ;
-            player_order = order ;
-            move_strategy = move_s ;
-        }
-
-        public String getName() {
-            return name ;
-        }
-
-        public int getPlayerType() {
-            return player_type ;
-        }
-
-        public int getMove() {
-            return move_strategy.move();
-        }
-    }
-
+    private SquareBoard board;
     private Player player1,player2;
-
-    public Player getplayer1() {
-        return player1 ;
-    }
-
-    public Player getplayer2() {
-        return player2 ;
-    }
 
     public static String getPosDescription(int pos) {
         String str = "";
@@ -118,12 +238,10 @@ class TicTacToe
             return str ;
         }
 
-        if( (pos-1)/3 == 0 ) {
+        if( (pos-1)/3 == 0 )
             str += "upper " ;
-        }
-        else if( (pos-1)/3 == 1 ) {
+        else if( (pos-1)/3 == 1 )
             str += "middle " ;
-        }
         else
             str += "lower " ;
 
@@ -137,49 +255,72 @@ class TicTacToe
         return str ;
     }
 
-    protected static String getUserInput() {
-        String input = "" ;
-        try {
-            input = reader.readLine();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return input ;
-    }
-
-    public TicTacToe()
+    public TicTacToe(Player player1, Player player2)
     {
-        board = new int[N][N];
-        for( int i = 0 ; i < N ; i ++ ) {
-            for( int j = 0 ; j < N ; j ++ ) {
-                board[i][j] = 0 ;
+        board = new SquareBoard(N);
+        this.player1 = player1;
+        this.player2 = player2;
+    }
+    
+    public void play() {
+        int move1, move2;
+        WinConfig w = WinConfig.NONE;
+        
+        System.out.println("Please make your move selection by entering a " +
+                "number 1-9 corresponding to the movement key on the right.\n");
+        System.out.println(toString()) ;
+
+        while( isWinningConfig() == WinConfig.NONE  )
+        {
+            do {
+            move1 = player1.getMove(this.board);
+            } while(!setMove(move1, player1.getPlayerType() ));
+
+
+            if( ( w = isWinningConfig() ) == WinConfig.WIN ) {
+                System.out.println("");
+                System.out.println(toString() );
+                System.out.println("You have beaten my poor AI!");
+                break ;
             }
+            else if( w == WinConfig.DRAW ) {
+                System.out.println("");
+                System.out.println(toString()) ;
+                System.out.println("Well played. It is a draw!");
+                break ;
+            }
+
+            move2 = player2.getMove(this.board);
+            System.out.println("");
+            System.out.println("You have put an X in the " +
+                    TicTacToe.getPosDescription(move1) + ". I will put a O in the " +
+                    TicTacToe.getPosDescription(move2) + "." ) ;
+            setMove(move2, player2.getPlayerType() ) ;
+
+            if( ( w = isWinningConfig() ) == WinConfig.WIN ) {
+                System.out.println("");
+                System.out.println(toString() );
+                System.out.println("I won. Thanks for playing.") ;
+                break ;
+            }
+            else if( w == WinConfig.DRAW ) {
+                System.out.println("");
+                System.out.println(toString()) ;
+                System.out.println("Well played. It is a draw!");
+                break ;
+            }
+            
+            System.out.println(toString());
         }
-
-        System.out.println("Enter player name");
-        player1 = new Player(getUserInput(),2,0,new HumanMove(this));
-
-        player2 = new Player("",1,1,new SimpleMoveStrategy(this));
-        System.out.println("\nHuman player " + player1.getName() + " vs Computer Player " + player2.getName() + ":" ) ;
     }
-
-    public boolean setMove(int move, int p_type)
+    
+    public boolean setMove(int move, MarkerType p_type)
     {
-        int x_coord;
-        int y_coord;
         boolean isValidMove = false;
         
         try {
-            x_coord = TicTacToe.getRowIndexFromBoardPos(move);
-            y_coord = TicTacToe.getColIndexFromBoardPos(move);
-            
-            if( board[x_coord][y_coord] == 0 )
-            {
-                board[x_coord][y_coord] = p_type ;
+            if (board.setCellIfEmpty(move, p_type))
                 isValidMove = true;
-            } else {
-                isValidMove = false;
-            }
             
         } catch (IllegalArgumentException ex) {
             isValidMove = false;
@@ -203,17 +344,17 @@ class TicTacToe
         // rows
         for( int i = 0 ; i < N ; i ++ )
         {
-            if (checkRow(i))
+            if (board.isRowIdentical(i))
                 return w;
         }
         // columns
         for( int i = 0 ; i < N ; i ++ )
         {
-            if (checkCol(i))
+            if (board.isColIdentical(i))
                 return w;
         }
         // diags
-        if (checkDiag1() || checkDiag2())
+        if (board.isDiag1Identical() || board.isDiag2Identical())
             return w;
 
         // draw
@@ -221,80 +362,23 @@ class TicTacToe
         for( int i = 0 ; i < N ; i ++ )
             for( int j = 0 ; j < N ; j ++ )
                 {
-                    if( board[i][j] == 0 )
+                    if( board.isCellFree(i, j) )
                         return WinConfig.NONE ;
                 }
         return w ;
-
     }
 
-    private boolean checkRow(int row) {
-        int firstVal = board[row][0];
-        
-        if (firstVal == 0)
-            return false;
-        
-        for (int col=1; col<N; col++) {
-            if (board[row][col] != firstVal)
-                return false;
-        }
-            
-        return true;
-    }
-    
-    private boolean checkCol(int col) {
-        int firstVal = board[0][col];
-        
-        if (firstVal == 0)
-            return false;
-        
-        for (int row=1; row<N; row++) {
-            if (board[row][col] != firstVal)
-                return false;
-        }
-        
-        return true;
-    }
-    
-    private boolean checkDiag1() {
-        int firstVal = board[0][0];
-        
-        if (firstVal == 0)
-            return false;
-        
-        for(int i=1, j=1; i<N && j<N; i++, j++) {
-            if (board[i][j] != firstVal)
-                return false;
-        }
-        
-        return true;
-    }
-    
-    private boolean checkDiag2() {
-        int firstVal = board[0][N-1];
-        
-        if (firstVal == 0)
-            return false;
-        
-        for(int i=1, j=N-2; i<N && j>=0; i++, j--) {
-            if (board[i][j] != firstVal)
-                return false;
-        }
-        
-        return true;
-    }
-    
     private String getRowString(int row)
     {
         String s = "" ;
         for( int i = 0 ; i < N ; i ++ )
         {
-            switch(board[row][i]) {
-            case 0: s += " " ;
+            switch(board.getCell(row, i)) {
+            case NONE: s += " " ;
                 break ;
-            case 1: s += "O" ;
+            case NOUGHT: s += "O" ;
                 break ;
-            case 2: s += "X" ;
+            case CROSS: s += "X" ;
             }
 
             if( i != N-1 )
@@ -303,11 +387,11 @@ class TicTacToe
                 }
         }
 
-            s += String.format("%" + HSPACE + "s", "");
+        s += String.format("%" + HSPACE + "s", "");
 
-         for( int i = 0 ; i < N ; i ++ )
-          {
-            s += TicTacToe.getBoardPosFromRowColIndex(row, i) ;
+        for( int i = 0 ; i < N ; i ++ )
+        {
+            s += board.getBoardPosFromRowColIndex(row, i) ;
 
             if( i == N-1 ) {
                 s += "\n";
@@ -315,7 +399,7 @@ class TicTacToe
             else {
                 s += " | " ;
             }
-          }
+        }
         return s;
     }
 
@@ -328,84 +412,35 @@ class TicTacToe
         }
         return s;
     }
-    
-    public static int getBoardPosFromRowColIndex(int row, int col) {
-        int boardPos = -1; // default value when row/col is invalid.
-        if (row >= 0 && row < N && col>=0 && col < N )
-            boardPos = row*N + col + 1;
-    
-        return boardPos;
-    }
-    
-    public static int getRowIndexFromBoardPos(int pos) {
-        if (pos >= 1 && pos <= N*N)
-            return (pos-1)/N;
-
-        throw new IllegalArgumentException();
-    }
-    
-    public static int getColIndexFromBoardPos(int pos) {
-        if (pos >= 1 && pos <= N*N)
-            return (pos-1)%N;
-        
-        throw new IllegalArgumentException();
-    }
 
     public static void main( String[] args )
     {
         System.out.println("Welcome to Tic-Tac-Toe.");
         System.out.println("");
+        Player player1, player2;
 
-        TicTacToe game = new TicTacToe();
-        String move_str ;
-        int move1 = 0 ;
-        int move2 = 0 ;
-        int player_type = 0 ;
-        WinConfig w = WinConfig.NONE ;
+        System.out.println("Enter player name");
+        player1 = new Player(Util.getUserInput(),MarkerType.CROSS,new HumanMove());
+        player2 = new Player("",MarkerType.NOUGHT,new SimpleMoveStrategy());
+        
+        System.out.println("\nHuman player " + player1.getName() +
+                " vs Computer Player " + player2.getName() + ":" ) ;
 
-        System.out.println("Please make your move selection by entering a number 1-9 corresponding to the movement key on the right.\n");
-        System.out.println(game.toString()) ;
+        TicTacToe game = new TicTacToe(player1, player2);
+        game.play();
+    }
+}
 
-        while( game.isWinningConfig() == WinConfig.NONE  )
-        {
-            do {
-            move1 = game.getplayer1().getMove();
-            } while(!game.setMove(move1,game.getplayer1().getPlayerType() ));
-
-
-            if( ( w = game.isWinningConfig() ) == WinConfig.WIN ) {
-                System.out.println("");
-                System.out.println(game.toString() );
-                System.out.println("You have beaten my poor AI!");
-                break ;
-            }
-            else if( w == WinConfig.DRAW ) {
-                System.out.println("");
-                System.out.println(game.toString()) ;
-                System.out.println("Well played. It is a draw!");
-                break ;
-            }
-
-            move2 = game.getplayer2().getMove();
-            System.out.println("");
-            System.out.println("You have put an X in the " + TicTacToe.getPosDescription(move1) + ". I will put a O in the " + TicTacToe.getPosDescription(move2) + "." ) ;
-            game.setMove(move2, game.getplayer2().getPlayerType() ) ;
-
-            if( ( w = game.isWinningConfig() ) == WinConfig.WIN ) {
-                System.out.println("");
-                System.out.println(game.toString() );
-                System.out.println("I won. Thanks for playing.") ;
-                break ;
-            }
-            else if( w == WinConfig.DRAW ) {
-                System.out.println("");
-                System.out.println(game.toString()) ;
-                System.out.println("Well played. It is a draw!");
-                break ;
-            }
-            
-            System.out.println(game.toString());
+class Util
+{
+    private static BufferedReader reader = new BufferedReader(new InputStreamReader(System.in)) ;
+    static String getUserInput() {
+        String input = "" ;
+        try {
+            input = reader.readLine();
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
-
+        return input ;
     }
 }

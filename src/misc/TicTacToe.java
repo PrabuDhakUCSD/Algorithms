@@ -22,6 +22,14 @@ interface MoveMethod
     public int move(IReadOnlyBoard board);
 }
 
+enum MarkerType {
+    NONE, NOUGHT, CROSS
+}
+
+enum PlayerPiece {
+    NOUGHT, CROSS;
+}
+
 class SimpleMoveStrategy implements MoveMethod
 {
     public SimpleMoveStrategy() {
@@ -62,20 +70,16 @@ class HumanMove implements MoveMethod
     }
 }
 
-enum MarkerType {
-    NONE, NOUGHT, CROSS
-}
-
 class Player
 {
     private String name ;
-    private MarkerType marker_type ;
+    private PlayerPiece playerPiece ;
     private MoveMethod move_strategy ;
 
-    public Player(String pname, MarkerType type, MoveMethod move_s )
+    public Player(String pname, PlayerPiece playerPiece, MoveMethod move_s )
     {
         name = pname ;
-        marker_type = type ;
+        this.playerPiece = playerPiece ;
         move_strategy = move_s ;
     }
 
@@ -83,8 +87,8 @@ class Player
         return name ;
     }
 
-    public MarkerType getPlayerType() {
-        return marker_type ;
+    public PlayerPiece getPlayerPiece() {
+        return playerPiece ;
     }
 
     public int getMove(IReadOnlyBoard board) {
@@ -113,6 +117,19 @@ class SquareBoard implements IReadOnlyBoard
         throw new IllegalArgumentException();
     }
     
+    MarkerType getCell(int pos) {
+        int rowInd = getRowIndexFromBoardPos(pos);
+        int colInd = getColIndexFromBoardPos(pos);
+        
+        return board[rowInd][colInd];
+    }
+    
+    void setCell(int pos, MarkerType marker) {
+        int rowInd = getRowIndexFromBoardPos(pos);
+        int colInd = getColIndexFromBoardPos(pos);
+        
+        board[rowInd][colInd] = marker;
+    }
     
     @Override
     public int getFirstEmptyCell() {
@@ -134,23 +151,10 @@ class SquareBoard implements IReadOnlyBoard
     }
    
     int getBoardPosFromRowColIndex(int row, int col) {
-        int boardPos = -1; // default value when row/col is invalid.
         if (row >= 0 && row < SIZE && col>=0 && col < SIZE )
-            boardPos = row*SIZE + col + 1;
+            return row*SIZE + col + 1;
     
-        return boardPos;
-    }
-    
-    boolean setCellIfEmpty(int pos, MarkerType marker) {
-        int rowInd = getRowIndexFromBoardPos(pos);
-        int colInd = getColIndexFromBoardPos(pos);
-        
-        if(isCellFree(rowInd, colInd)) {
-            board[rowInd][colInd] = marker;
-            return true;
-        }
-        
-        return false;
+        throw new IllegalArgumentException();
     }
     
     int getRowIndexFromBoardPos(int pos) {
@@ -257,6 +261,9 @@ class TicTacToe
 
     public TicTacToe(Player player1, Player player2)
     {
+        if (player1.getPlayerPiece() == player2.getPlayerPiece())
+            throw new IllegalArgumentException("Both player1 and player2 have"+
+                    " same piece type.");
         board = new SquareBoard(N);
         this.player1 = player1;
         this.player2 = player2;
@@ -274,8 +281,7 @@ class TicTacToe
         {
             do {
             move1 = player1.getMove(this.board);
-            } while(!setMove(move1, player1.getPlayerType() ));
-
+            } while(!setMove(move1, player1.getPlayerPiece() ));
 
             if( ( w = isWinningConfig() ) == WinConfig.WIN ) {
                 System.out.println("");
@@ -295,7 +301,7 @@ class TicTacToe
             System.out.println("You have put an X in the " +
                     TicTacToe.getPosDescription(move1) + ". I will put a O in the " +
                     TicTacToe.getPosDescription(move2) + "." ) ;
-            setMove(move2, player2.getPlayerType() ) ;
+            setMove(move2, player2.getPlayerPiece() ) ;
 
             if( ( w = isWinningConfig() ) == WinConfig.WIN ) {
                 System.out.println("");
@@ -314,14 +320,15 @@ class TicTacToe
         }
     }
     
-    public boolean setMove(int move, MarkerType p_type)
+    public boolean setMove(int boardPos, PlayerPiece playerPiece)
     {
         boolean isValidMove = false;
         
         try {
-            if (board.setCellIfEmpty(move, p_type))
+            if (board.getCell(boardPos) == MarkerType.NONE) {
+                board.setCell(boardPos, getMarkerType(playerPiece));
                 isValidMove = true;
-            
+            }
         } catch (IllegalArgumentException ex) {
             isValidMove = false;
         }
@@ -412,6 +419,17 @@ class TicTacToe
         }
         return s;
     }
+    
+    
+    MarkerType getMarkerType(PlayerPiece playerPiece) {
+        if (playerPiece == PlayerPiece.NOUGHT)
+            return MarkerType.NOUGHT;
+        if (playerPiece == PlayerPiece.CROSS)
+            return MarkerType.CROSS;
+        
+        throw new IllegalArgumentException("Unexpected player piece: " +
+                playerPiece.toString());
+    }
 
     public static void main( String[] args )
     {
@@ -420,8 +438,8 @@ class TicTacToe
         Player player1, player2;
 
         System.out.println("Enter player name");
-        player1 = new Player(Util.getUserInput(),MarkerType.CROSS,new HumanMove());
-        player2 = new Player("",MarkerType.NOUGHT,new SimpleMoveStrategy());
+        player1 = new Player(Util.getUserInput(),PlayerPiece.CROSS,new HumanMove());
+        player2 = new Player("",PlayerPiece.NOUGHT,new SimpleMoveStrategy());
         
         System.out.println("\nHuman player " + player1.getName() +
                 " vs Computer Player " + player2.getName() + ":" ) ;

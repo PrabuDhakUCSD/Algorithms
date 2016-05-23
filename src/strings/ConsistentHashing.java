@@ -47,7 +47,7 @@ public class ConsistentHashing {
     static double getHash(String key) {
         int hashValue = key.hashCode() & 0x7fffffff;
         // System.out.println(hashValue);
-        return (hashValue / (double) Integer.MAX_VALUE) % Integer.MAX_VALUE;
+        return (hashValue / (double) Integer.MAX_VALUE);
     }
 
     static String readString() {
